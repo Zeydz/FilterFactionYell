@@ -1,0 +1,6 @@
+## Interface: 30300
+## Title: FilterFactionYell
+## Notes: Filters out /yell messages from the opposite faction.
+## Author: Joakim
+## Version: 1.0.0
+FilterFactionYell.lua
