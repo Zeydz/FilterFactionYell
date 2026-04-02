@@ -2,5 +2,6 @@
 ## Title: FilterFactionYell
 ## Notes: Filters out /yell messages from the opposite faction.
 ## Author: Joakim
-## Version: 1.0.0
+## Version: 1.1.0
+## SavedVariables: FilterFactionYellDB
 FilterFactionYell.lua

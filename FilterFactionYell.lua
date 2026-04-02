@@ -1,16 +1,32 @@
 -- FilterFactionYell
 -- Filters out /yell messages from the opposite faction in WotLK 3.3.5a
 -- Opposite faction yells show up as garbled text anyway, so no point seeing them.
+-- Usage: /ffy toggle | /ffy status
 
 local addonName = "FilterFactionYell"
 local playerFaction = nil
 
+-- SavedVariables (persists between sessions)
+FilterFactionYellDB = FilterFactionYellDB or {}
+
+local function IsEnabled()
+    -- Default to enabled if never set
+    if FilterFactionYellDB.enabled == nil then
+        FilterFactionYellDB.enabled = true
+    end
+    return FilterFactionYellDB.enabled
+end
+
+local function Print(msg)
+    DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff" .. addonName .. "|r " .. msg)
+end
+
+-- Determine player faction on login
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_LOGIN" then
         local _, race = UnitRace("player")
-        -- Determine player faction from race
         local horde = {
             Orc = true, Scourge = true, Tauren = true,
             Troll = true, BloodElf = true,
@@ -20,21 +36,19 @@ frame:SetScript("OnEvent", function(self, event)
         else
             playerFaction = "Alliance"
         end
-        DEFAULT_CHAT_FRAME:AddMessage("|cff00ccff" .. addonName .. "|r loaded — filtering opposite faction yells.")
+
+        local state = IsEnabled() and "|cff00ff00ON|r" or "|cffff0000OFF|r"
+        Print("loaded — filter is " .. state .. ". Type |cffffffff/ffy|r for commands.")
     end
 end)
 
--- Chat filter for YELL messages
--- In 3.3.5a the filter signature is: function(self, event, msg, sender, language, ...)
--- language is the in-game language string (e.g. "Orcish", "Common", "Gutterspeak", etc.)
--- Opposite faction yells arrive in a language you can't understand.
-
+-- Language tables
 local ALLIANCE_LANGUAGES = {
-    ["Common"]   = true,
+    ["Common"]     = true,
     ["Darnassian"] = true,
-    ["Dwarvish"] = true,
-    ["Gnomish"]  = true,
-    ["Draenei"]  = true,
+    ["Dwarvish"]   = true,
+    ["Gnomish"]    = true,
+    ["Draenei"]    = true,
 }
 
 local HORDE_LANGUAGES = {
@@ -43,7 +57,6 @@ local HORDE_LANGUAGES = {
     ["Gutterspeak"] = true,
     ["Thalassian"]  = true,
     ["Zandali"]     = true,
-    ["Forsaken"]    = true,
 }
 
 local function IsOppositeFactionLanguage(language)
@@ -57,10 +70,29 @@ local function IsOppositeFactionLanguage(language)
     end
 end
 
--- Register the chat message filter for CHAT_MSG_YELL
+-- Chat filter
 ChatFrame_AddMessageEventFilter("CHAT_MSG_YELL", function(self, event, msg, sender, language, ...)
-    if IsOppositeFactionLanguage(language) then
-        return true -- block the message
+    if IsEnabled() and IsOppositeFactionLanguage(language) then
+        return true
     end
     return false, msg, sender, language, ...
 end)
+
+-- Slash commands: /ffy
+SLASH_FILTERFACTIONYELL1 = "/ffy"
+SlashCmdList["FILTERFACTIONYELL"] = function(input)
+    local cmd = string.lower(string.trim(input or ""))
+
+    if cmd == "toggle" then
+        FilterFactionYellDB.enabled = not IsEnabled()
+        local state = IsEnabled() and "|cff00ff00ON|r" or "|cffff0000OFF|r"
+        Print("filter is now " .. state)
+    elseif cmd == "status" then
+        local state = IsEnabled() and "|cff00ff00ON|r" or "|cffff0000OFF|r"
+        Print("filter is " .. state)
+    else
+        Print("commands:")
+        Print("  |cffffffff/ffy toggle|r — turn filter on/off")
+        Print("  |cffffffff/ffy status|r — show current state")
+    end
+end
